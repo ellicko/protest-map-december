@@ -1,5 +1,27 @@
-// Initialize map
-const map = L.map('map').setView([20, 0], 2);
+// Mobile sidebar functionality
+const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.querySelector('.sidebar-overlay');
+
+function toggleSidebar() {
+    sidebar.classList.toggle('active');
+    sidebarOverlay.classList.toggle('active');
+}
+
+toggleSidebarBtn.addEventListener('click', toggleSidebar);
+sidebarOverlay.addEventListener('click', toggleSidebar);
+
+// Initialize map with mobile-friendly options
+const map = L.map('map', {
+    zoomControl: false,  // We'll reposition the zoom control
+    tap: true  // Enable tap handler for mobile
+}).setView([20, 0], 2);
+
+// Add zoom control to top-right for better mobile accessibility
+L.control.zoom({
+    position: 'topright'
+}).addTo(map);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
@@ -30,6 +52,14 @@ function createMarkers() {
             `);
         markers[protest.id] = marker;
         visibleMarkers.add(protest.id);
+
+        // Add mobile-friendly popup handling
+        marker.on('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            }
+        });
     });
     updateProtestCount();
 }
@@ -50,6 +80,10 @@ function updateSidebar(filteredProtests = protests) {
         protestItem.onclick = () => {
             map.setView(protest.coordinates, 13);
             markers[protest.id].openPopup();
+            // Close sidebar on mobile when selecting a protest
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
         };
         protestList.appendChild(protestItem);
     });
@@ -76,7 +110,7 @@ function filterProtests(date) {
     updateProtestCount();
 }
 
-// Initialize date picker
+// Initialize mobile-friendly date picker
 const picker = new Pikaday({
     field: document.getElementById('datePicker'),
     format: 'MMMM D',
@@ -93,6 +127,18 @@ document.getElementById('resetFilter').addEventListener('click', () => {
     picker.setDate(null);
     document.getElementById('datePicker').value = '';
     filterProtests();
+});
+
+// Handle window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        if (window.innerWidth > 768) {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        }
+    }, 250);
 });
 
 // Initialize the map
